@@ -3,11 +3,11 @@ import { ref } from 'vue'
  
 const profileName = ref(null)
 const profile = ref(null)
-let name
-let age
-let link
-let bio
-let likes
+const name = ref(null)
+const age = ref(null)
+const link = ref(null)
+const bio = ref(null)
+const likes = ref(null)
 
 
 const fetchProfile = () => {
@@ -18,31 +18,42 @@ const fetchProfile = () => {
         },
     })
     .then(response => response.json())
-    .then(data => profile.value = data)
+    .then(data => setProfileData(data))
 }
 
-const renderProfile = () => {
-    fetchProfile()
+function setProfileData(data) {
+    profile.value = data
+    name.value = data.Name
+    age.value = data.Age
+    link.value = data.Link
+    bio.value = data.Bio
 
-    console.log(profile)
-
-    console.log("profile.Name")
-    console.log(profile.Name)
-
-    name = ref(profile.Name)
-    age = ref(profile.Age)
-    link = ref(profile.Link)
-    bio = ref(profile.Bio)
-    likes = ref(profile.Likes)
-    console.log(name)
-    console.log(age.value)
-    console.log(link.value)
-    console.log(bio.value)
-    console.log(likes.value)
+    // set likes.value to be a 2D array where the
+    // inner array is [category, favorite]
+    let temp = []
+    for (var key in data.Likes) {
+        temp.push([key, data.Likes[key]])
+    }
+    likes.value = temp
+    
 }
 
 const updateProfile = () => {
-    // TODO initialize newProfileObject
+    var newDict = {}
+
+    for (var i=0; i< likes.value.length; i++) {
+        var pair = likes.value[i]
+        newDict[pair[0]] = pair[1]
+    }
+
+    let newProfileObject = {
+        "Name": name.value,
+        "Age": age.value,
+        "Bio": bio.value,
+        "Likes": newDict,
+        "Link": link.value
+    }
+    
     fetch(`http://timoth.yt/api/rampup?name=${profileName.value}`, {
         method: 'POST',
         headers: {
@@ -59,12 +70,8 @@ const updateProfile = () => {
     <form id="fetchProfileForm" onsubmit="return false">
         <label for="profileName">Profile Name:</label>
         <input id="profileName" v-model="profileName" required>
-        <input type="submit" @click="renderProfile()">
+        <input type="submit" @click="fetchProfile()">
     </form>
-
-    {{ profile }}
-
-    <!--TODO only render form once fetched profile-->
 
     <!-- This form tag wraps our inputs & allows us to require certain fields prior to submission -->
     <div v-if="profile" class="form-wrapper">
@@ -76,6 +83,7 @@ const updateProfile = () => {
                     <label for="name">Name:</label>
                     <input id="name" v-model="name" placeholder="First Name" required>
                 </div>
+
                 <div class='pair'>
                     <!-- Input & Label for 'Age' attribute -->
                     <label for="age">Age:</label>
@@ -93,12 +101,13 @@ const updateProfile = () => {
 
             <!-- Inputs & Labels for 'Likes' attribute -->
             <label for="likes">Likes:</label>
-            <div id="likes" v-for="index in likeCount" v-bind:key="index">
+            <div id="likes" v-for="like in likes">
                 <!-- This block dynamically generates a number of input pairs 
                 for each Like according to the value of likeCount -->
-                <input v-model="likes[index - 1].category" placeholder="Category" required>
-                <input v-model="likes[index - 1].favorite" placeholder="Your Favorite" required>
+                <input v-model="like[0]" placeholder="Category" required>
+                <input v-model="like[1]" placeholder="Your Favorite" required>
             </div>
+
             <!-- Buttons for submission & adding more Like inputs -->
             <div class='sub-form'>
                 <input class='form-button' type="submit" @click="updateProfile()">
